@@ -279,32 +279,34 @@ function createExplanationTrials(num_trials = 3) {
     selected_indices.forEach((trial_idx, count) => {
         const trial_data = trials_data[trial_idx];
         
-        // Find the category response from the data
-        const all_data = jsPsych.data.get().filter({
-            trial_type: 'category_input',
-            trial_index: trial_data.trial_index
-        }).values();
-        
-        let category_text = '';
-        if (all_data.length > 0) {
-            category_text = all_data[0].response.category;
-        }
-        
         // Get the participant's category response for this trial
         const category_response_getter = {
             type: jsPsychSurveyText,
             questions: [
                 {
-                    prompt: `
-                        <div class="word-display">
-                            ${trial_data.word1}<br>
-                            ${trial_data.word2}<br>
-                            ${trial_data.word3}<br>
-                            ${trial_data.word4}
-                        </div>
-                        <p>You categorized these words as: <strong>"${category_text}"</strong></p>
-                        <p>Please explain how you came up with this category. What was your thought process?</p>
-                    `,
+                    prompt: function() {
+                        // Find the category response from the data at runtime
+                        const all_data = jsPsych.data.get().filter({
+                            trial_type: 'category_input',
+                            trial_index: trial_data.trial_index
+                        }).values();
+                        
+                        let category_text = 'NO CATEGORY FOUND';
+                        if (all_data.length > 0) {
+                            category_text = all_data[0].response.category;
+                        }
+                        
+                        return `
+                            <div class="word-display">
+                                ${trial_data.word1}<br>
+                                ${trial_data.word2}<br>
+                                ${trial_data.word3}<br>
+                                ${trial_data.word4}
+                            </div>
+                            <p>You categorized these words as: <strong>"${category_text}"</strong></p>
+                            <p>Please explain how you came up with this category. What was your thought process?</p>
+                        `;
+                    },
                     name: 'explanation',
                     required: true,
                     rows: 5
@@ -314,8 +316,7 @@ function createExplanationTrials(num_trials = 3) {
                 trial_type: 'explanation',
                 words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
                 trial_index: trial_data.trial_index,
-                explanation_number: count + 1,
-                original_category: category_text
+                explanation_number: count + 1
             }
         };
         
