@@ -188,6 +188,12 @@ function createTrialSequence(trial_data) {
             trial_type: 'category_input',
             words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
             trial_index: trial_data.trial_index
+        }, 
+        on_finish: function(data) {
+            // Explicitly ensure the trial_type and trial_index are saved
+            data.trial_type = 'category_input';
+            data.trial_index = trial_data.trial_index;
+            data.words = [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4];
         }
     };
     
