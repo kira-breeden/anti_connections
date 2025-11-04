@@ -285,11 +285,21 @@ function createExplanationTrials(num_trials = 3) {
             questions: [
                 {
                     prompt: function() {
+                        // Debug: log all category_input data
+                        const all_category_data = jsPsych.data.get().filter({
+                            trial_type: 'category_input'
+                        }).values();
+                        
+                        console.log('All category input data:', all_category_data);
+                        console.log('Looking for trial_index:', trial_data.trial_index);
+                        
                         // Find the category response from the data at runtime
                         const all_data = jsPsych.data.get().filter({
                             trial_type: 'category_input',
                             trial_index: trial_data.trial_index
                         }).values();
+                        
+                        console.log('Filtered data for this trial:', all_data);
                         
                         let category_text = 'NO CATEGORY FOUND';
                         if (all_data.length > 0) {
@@ -329,7 +339,7 @@ function createExplanationTrials(num_trials = 3) {
 // Main function to run the experiment
 async function runExperiment() {
     // Load trials from CSV
-    trials_data = await loadTrialsFromCSV('trials.csv');
+    trials_data = await loadTrialsFromCSV('demo_sample.csv');
     
     if (trials_data.length === 0) {
         alert('No trials loaded. Please check your trials.csv file.');
