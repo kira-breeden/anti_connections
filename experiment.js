@@ -70,7 +70,7 @@ async function loadTrialsFromCSV(filename) {
         const trials = [];
         for (let i = 1; i < lines.length; i++) {
             const values = lines[i].split(',').map(v => v.trim());
-            if (values.length === 4 && values.every(v => v.length > 0)) {
+            if (values.every(v => v.length > 0)) {
                 trials.push({
                     word1: values[0],
                     word2: values[1],
