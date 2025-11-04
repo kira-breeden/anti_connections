@@ -164,7 +164,7 @@ const instructions_3 = {
 };
 
 // Function to create a trial sequence
-function createTrialSequence(trial_data) {
+function createTrialSequence(trial_data, should_store_category = false) {
     const word_display = `
         <div class="word-display">
             ${trial_data.word1}<br>
@@ -195,6 +195,12 @@ function createTrialSequence(trial_data) {
             data.trial_type = 'category_input';
             data.trial_index = trial_data.trial_index;
             data.words = [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4];
+            
+            // If this trial was selected for explanation, store the category
+            if (should_store_category) {
+                stored_categories[trial_data.trial_index] = data.response.category;
+                console.log('Stored category for trial', trial_data.trial_index, ':', data.response.category);
+            }
         }
     };
     
@@ -250,20 +256,7 @@ function createTrialSequence(trial_data) {
 }
 
 // Function to create explanation trials for randomly selected trials
-function createExplanationTrials(num_trials = 3) {
-    // Randomly select trials
-    const num_to_select = Math.min(num_trials, trials_data.length);
-    const selected_indices = [];
-    
-    while (selected_indices.length < num_to_select) {
-        const random_index = Math.floor(Math.random() * trials_data.length);
-        if (!selected_indices.includes(random_index)) {
-            selected_indices.push(random_index);
-        }
-    }
-    
-    selected_trials_for_explanation = selected_indices;
-    
+function createExplanationTrials(selected_indices) {
     const explanation_trials = [];
     
     // Introduction to explanation section
@@ -273,7 +266,7 @@ function createExplanationTrials(num_trials = 3) {
             <div class="instruction-text">
                 <h2>Final Questions</h2>
                 <p>We'd like to understand more about how you came up with some of your categories.</p>
-                <p>We've randomly selected ${num_to_select} of your responses. For each one, 
+                <p>We've randomly selected ${selected_indices.length} of your responses. For each one, 
                 please explain your reasoning.</p>
             </div>
         `,
@@ -285,45 +278,23 @@ function createExplanationTrials(num_trials = 3) {
     // Get the actual data for selected trials
     selected_indices.forEach((trial_idx, count) => {
         const trial_data = trials_data[trial_idx];
+        const stored_category = stored_categories[trial_data.trial_index] || 'NO CATEGORY FOUND';
         
         // Get the participant's category response for this trial
         const category_response_getter = {
             type: jsPsychSurveyText,
             questions: [
                 {
-                    prompt: function() {
-                        // Debug: log all category_input data
-                        const all_category_data = jsPsych.data.get().filter({
-                            trial_type: 'category_input'
-                        }).values();
-                        
-                        console.log('All category input data:', all_category_data);
-                        console.log('Looking for trial_index:', trial_data.trial_index);
-                        
-                        // Find the category response from the data at runtime
-                        const all_data = jsPsych.data.get().filter({
-                            trial_type: 'category_input',
-                            trial_index: trial_data.trial_index
-                        }).values();
-                        
-                        console.log('Filtered data for this trial:', all_data);
-                        
-                        let category_text = 'NO CATEGORY FOUND';
-                        if (all_data.length > 0) {
-                            category_text = all_data[0].response.category;
-                        }
-                        
-                        return `
-                            <div class="word-display">
-                                ${trial_data.word1}<br>
-                                ${trial_data.word2}<br>
-                                ${trial_data.word3}<br>
-                                ${trial_data.word4}
-                            </div>
-                            <p>You categorized these words as: <strong>"${category_text}"</strong></p>
-                            <p>Please explain how you came up with this category. What was your thought process?</p>
-                        `;
-                    },
+                    prompt: `
+                        <div class="word-display">
+                            ${trial_data.word1}<br>
+                            ${trial_data.word2}<br>
+                            ${trial_data.word3}<br>
+                            ${trial_data.word4}
+                        </div>
+                        <p>You categorized these words as: <strong>"${stored_category}"</strong></p>
+                        <p>Please explain how you came up with this category. What was your thought process?</p>
+                    `,
                     name: 'explanation',
                     required: true,
                     rows: 5
@@ -333,7 +304,8 @@ function createExplanationTrials(num_trials = 3) {
                 trial_type: 'explanation',
                 words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
                 trial_index: trial_data.trial_index,
-                explanation_number: count + 1
+                explanation_number: count + 1,
+                original_category: stored_category
             }
         };
         
@@ -353,20 +325,33 @@ async function runExperiment() {
         return;
     }
     
+    // PRE-SELECT which trials will need explanations BEFORE building the timeline
+    const num_explanations = Math.min(5, trials_data.length); // TO DO: Ask Aja how many we think we should ask about
+    const selected_indices = [];
+    
+    while (selected_indices.length < num_explanations) {
+        const random_index = Math.floor(Math.random() * trials_data.length);
+        if (!selected_indices.includes(random_index)) {
+            selected_indices.push(random_index);
+        }
+    }
+    
+    console.log('Pre-selected trials for explanation:', selected_indices);
+    
     // Add instructions to timeline
     timeline.push(instructions_1);
     timeline.push(instructions_2);
     timeline.push(instructions_3);
     
-    // Add all trial sequences
-    trials_data.forEach(trial => {
-        const trial_sequence = createTrialSequence(trial);
+    // Add all trial sequences, marking which ones need category storage
+    trials_data.forEach((trial, idx) => {
+        const should_store = selected_indices.includes(idx);
+        const trial_sequence = createTrialSequence(trial, should_store);
         timeline.push(...trial_sequence);
     });
     
-    // Add explanation trials (randomly select 3 trials, or fewer if there are fewer trials)
-    const num_explanations = Math.min(5, trials_data.length); // TO DO: Ask Aja how many we think we should ask about 
-    const explanation_trials = createExplanationTrials(num_explanations);
+    // Add explanation trials - NOW they can use the stored categories
+    const explanation_trials = createExplanationTrials(selected_indices);
     timeline.push(...explanation_trials);
     
     // Thank you message
