@@ -98,7 +98,7 @@ const instructions_1 = {
             <p>In this experiment, you will see sets of four words. Your task is to create a category 
             that links all four words together in a meaningful way.</p>
             
-            <p>The key is to think of categories that are <strong>specific and meaningful</strong>, 
+            <p>The key is to think of categories that are <strong>meaningful</strong>, 
             not categories that are so broad they could apply to almost anything.</p>
             
             <p>Click "Next" to see some examples.</p>
@@ -115,18 +115,18 @@ const instructions_2 = {
             <h2>Examples of Good and Bad Categories</h2>
             
             <div class="example-box bad-example">
-                <h3 style="color: #f44336;">❌ Bad Category Example</h3>
+                <h3 style="color: #f44336;"> Less Good Category Example</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things you can use as a doorstop"</p>
-                <p><strong>Why it's bad:</strong> This category is too broad and vague. You could use 
+                <p><strong>Why it's less good:</strong> This category is broad and vague. You could use 
                 almost anything as a doorstop, so this doesn't create a meaningful connection between 
-                these specific items.</p>
+                these specific items. This sort of answer can be a last resort if you cannot think of anything else that connects these things.</p>
             </div>
             
             <div class="example-box good-example">
                 <h3 style="color: #4CAF50;">✓ Good Category Example</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
-                <p><strong>Category:</strong> "Things you use on the first night of a camping trip"</p>
+                <p><strong>Category:</strong> "Things that might get lost during a camping trip"</p>
                 <p><strong>Why it's good:</strong> This category is specific and creates a meaningful 
                 context that connects these particular items in a natural way.</p>
             </div>
@@ -200,11 +200,9 @@ function createTrialSequence(trial_data) {
                 name: 'difficulty',
                 labels: [
                     "Very Easy",
-                    "Easy",
                     "Somewhat Easy",
                     "Neutral",
                     "Somewhat Difficult",
-                    "Difficult",
                     "Very Difficult"
                 ],
                 required: true
@@ -226,11 +224,9 @@ function createTrialSequence(trial_data) {
                 name: 'consensus',
                 labels: [
                     "Very Unlikely",
-                    "Unlikely",
                     "Somewhat Unlikely",
                     "Neutral",
                     "Somewhat Likely",
-                    "Likely",
                     "Very Likely"
                 ],
                 required: true
@@ -351,7 +347,7 @@ async function runExperiment() {
     });
     
     // Add explanation trials (randomly select 3 trials, or fewer if there are fewer trials)
-    const num_explanations = Math.min(3, trials_data.length);
+    const num_explanations = Math.min(5, trials_data.length); // TO DO: Ask Aja how many we think we should ask about 
     const explanation_trials = createExplanationTrials(num_explanations);
     timeline.push(...explanation_trials);
     
