@@ -10,6 +10,7 @@ const jsPsych = initJsPsych({
     }
 });
 
+
 // Function to save data to OSF via DataPipe
 function saveDataToOSF(filename) {
     // Get only the main trial data (category and explanation trials)
@@ -63,6 +64,7 @@ async function loadTrialsFromCSV(filename) {
         const response = await fetch(filename);
         const csvText = await response.text();
         
+        // Parse CSV
         const lines = csvText.trim().split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
         
@@ -83,12 +85,12 @@ async function loadTrialsFromCSV(filename) {
         return trials;
     } catch (error) {
         console.error('Error loading CSV:', error);
-        alert('Error loading trials file. Please make sure the CSV file is in the same directory.');
+        alert('Error loading trials file. Please make sure trials.csv is in the same directory.');
         return [];
     }
 }
 
-// Instructions pages
+// Instructions page 1
 const instructions_1 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -106,6 +108,7 @@ const instructions_1 = {
     choices: ['Next']
 };
 
+// Instructions page 2 - Examples
 const instructions_2 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -113,29 +116,45 @@ const instructions_2 = {
             <h2>Examples of Good and Bad Categories</h2>
             
             <div class="example-box bad-example">
-                <h3 style="color: #f44336;">❌ Less Good Category Example</h3>
+                <h3 style="color: #f44336;"> Less Good Category Example 1</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things you can use as a doorstop"</p>
                 <p><strong>Why it's less good:</strong> This category is broad and vague. You could use 
                 almost anything as a doorstop, so this doesn't create a meaningful connection between 
                 these specific items. This sort of answer can be a last resort if you cannot think of anything else that connects these things.</p>
             </div>
-            
+
+            <div class="example-box bad-example">
+                <h3 style="color: #f44336;"> Less Good Category Example 2</h3>
+                <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
+                <p><strong>Category:</strong> "When you walk along the road with your shoe on your foot, a rope on your back, a trowel in your pocket, and a lantern in your hand."</p>
+                <p><strong>Why it's less good:</strong> This category just puts the words in a sentence together. This is not specific and does not connect the items in a meaningful way.</p>
+            </div>
+
             <div class="example-box good-example">
-                <h3 style="color: #4CAF50;">✓ Good Category Example</h3>
+                <h3 style="color: #4CAF50;">✓ Good Category Example 1</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things that might get lost during a camping trip"</p>
                 <p><strong>Why it's good:</strong> This category is specific and creates a meaningful 
                 context that connects these particular items in a natural way.</p>
             </div>
+
+            <div class="example-box good-example">
+                <h3 style="color: #4CAF50;">✓ Good Category Example 2</h3>
+                <p><strong>Words:</strong> apple, orange, cheese, yogurt</p>
+                <p><strong>Category:</strong> "Snacks you might find in a child's lunch box"</p>
+                <p><strong>Why it's good:</strong> This category creates a meaningful 
+                context that connects these particular items in a natural way.</p>
+            </div>
             
             <p><strong>Remember:</strong> Think of categories that are specific and meaningful, 
-            not overly broad or generic.</p>
+            not overly broad, generic, or meaningless.</p>
         </div>
     `,
     choices: ['Next']
 };
 
+// Instructions page 3 - Task overview
 const instructions_3 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -332,63 +351,6 @@ function createExplanationTrials(selected_indices) {
     return explanation_trials;
 }
 
-// Main function to run the experiment
-async function runExperiment() {
-    // Load trials from CSV
-    trials_data = await loadTrialsFromCSV('demo_sample.csv');
-    
-    if (trials_data.length === 0) {
-        alert('No trials loaded. Please check your CSV file.');
-        return;
-    }
-    
-    // Pre-select trials for explanation
-    const num_explanations = Math.min(5, trials_data.length);
-    const selected_indices = [];
-    
-    while (selected_indices.length < num_explanations) {
-        const random_index = Math.floor(Math.random() * trials_data.length);
-        if (!selected_indices.includes(random_index)) {
-            selected_indices.push(random_index);
-        }
-    }
-    
-    console.log('Pre-selected trials for explanation:', selected_indices);
-    console.log('Subject code:', subjCode);
-    
-    // Build timeline
-    timeline.push(instructions_1);
-    timeline.push(instructions_2);
-    timeline.push(instructions_3);
-    
-    // Add all trial sequences
-    trials_data.forEach((trial, idx) => {
-        const should_store = selected_indices.includes(idx);
-        const trial_sequence = createTrialSequence(trial, should_store);
-        timeline.push(...trial_sequence);
-    });
-    
-    // Add explanation trials
-    const explanation_trials = createExplanationTrials(selected_indices);
-    timeline.push(...explanation_trials);
-    
-    // Thank you message
-    const thank_you = {
-        type: jsPsychHtmlButtonResponse,
-        stimulus: `
-            <div class="instruction-text">
-                <h2>Thank You!</h2>
-                <p>You have completed the experiment.</p>
-                <p>Your responses have been recorded.</p>
-            </div>
-        `,
-        choices: ['Finish']
-    };
-    timeline.push(thank_you);
-    
-    // Run the experiment
-    jsPsych.run(timeline);
-}
 
 // Start the experiment when page loads
 runExperiment();
