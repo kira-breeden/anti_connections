@@ -24,22 +24,14 @@ const jsPsych = initJsPsych({
 
 // Function to save data to OSF via DataPipe
 function saveDataToOSF(filename) {
-    // Show saving message
-    document.body.innerHTML = `
-        <div style="text-align: center; margin-top: 100px; font-size: 24px;">
-            <h2>Saving your data...</h2>
-            <p style="color: red; font-weight: bold;">DO NOT LEAVE THIS WINDOW</p>
-            <p>Please wait while we save your responses.</p>
-        </div>
-    `;
-    
     // Get only the main trial data (category and explanation trials)
     const main_data = jsPsych.data.get().filter({save_trial: true});
     
     // Manually build CSV with only the columns we want
     const rows = main_data.values();
     const headers = ['subjCode', 'randomSeed', 'rt', 'trial_type', 'word1', 'word2', 'word3', 'word4', 
-                     'category_response', 'difficulty', 'consensus', 'trial_index', 'original_trial_index', 'time_elapsed'];
+                     'group_id', 'category_response', 'difficulty', 'consensus', 'trial_index', 
+                     'explained_trial_index', 'time_elapsed'];
     
     let csv = headers.join(',') + '\n';
     
@@ -71,18 +63,16 @@ function saveDataToOSF(filename) {
         })
     }).then(response => {
         if (response.ok) {
-            console.log('Data saved successfully');
+            console.log('Data saved successfully to OSF');
             return true;
         } else {
-            console.error('Failed to save data');
-            // Fallback: show the data
-            document.body.innerHTML = '<pre>' + csv + '</pre>';
+            console.error('Failed to save data to OSF');
+            console.log('Data that failed to save:', csv);
             return false;
         }
     }).catch(error => {
-        console.error('Error saving data:', error);
-        // Fallback: show the data
-        document.body.innerHTML = '<pre>' + csv + '</pre>';
+        console.error('Error saving data to OSF:', error);
+        console.log('Data that failed to save:', csv);
         return false;
     });
 }
@@ -130,10 +120,13 @@ async function loadTrialsFromCSV(filename) {
         const lines = csvText.trim().split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
         
+        // Find the group_id column index
+        const group_id_index = headers.indexOf('group_id');
+        
         const trials = [];
         for (let i = 1; i < lines.length; i++) {
             const values = lines[i].split(',').map(v => v.trim());
-            if (values.every(v => v.length > 0)) {
+            if (values.length >= 4 && values.slice(0, 4).every(v => v.length > 0)) {
                 // Randomize word order within trial using seeded RNG
                 const words = [values[0], values[1], values[2], values[3]];
                 const shuffled_words = rng.shuffle(words);
@@ -143,13 +136,20 @@ async function loadTrialsFromCSV(filename) {
                     word2: shuffled_words[1],
                     word3: shuffled_words[2],
                     word4: shuffled_words[3],
-                    trial_index: i  // Start at 1, not 0
+                    group_id: group_id_index >= 0 ? values[group_id_index] : ''
                 });
             }
         }
         
         // Randomize trial order using seeded RNG
-        return rng.shuffle(trials);
+        const shuffled_trials = rng.shuffle(trials);
+        
+        // NOW assign trial_index based on presentation order (1-indexed)
+        shuffled_trials.forEach((trial, idx) => {
+            trial.trial_index = idx + 1;
+        });
+        
+        return shuffled_trials;
     } catch (error) {
         console.error('Error loading CSV:', error);
         alert('Error loading trials file. Please make sure the CSV file is in the same directory.');
@@ -260,6 +260,7 @@ function createTrialSequence(trial_data, should_store_category = false) {
         word2: trial_data.word2,
         word3: trial_data.word3,
         word4: trial_data.word4,
+        group_id: trial_data.group_id,
         trial_index: trial_data.trial_index
     };
     
@@ -335,6 +336,7 @@ function createTrialSequence(trial_data, should_store_category = false) {
                 word2: trial_responses.word2,
                 word3: trial_responses.word3,
                 word4: trial_responses.word4,
+                group_id: trial_responses.group_id,
                 category_response: trial_responses.category_response,
                 difficulty: trial_responses.difficulty,
                 consensus: trial_responses.consensus,
@@ -349,6 +351,7 @@ function createTrialSequence(trial_data, should_store_category = false) {
                     word2: trial_responses.word2,
                     word3: trial_responses.word3,
                     word4: trial_responses.word4,
+                    group_id: trial_responses.group_id,
                     category_response: trial_responses.category_response
                 };
             }
@@ -414,9 +417,10 @@ function createExplanationTrials(selected_indices, starting_trial_index) {
                 data.word2 = stored.word2;
                 data.word3 = stored.word3;
                 data.word4 = stored.word4;
+                data.group_id = stored.group_id;
                 data.category_response = data.response.explanation; // The explanation text
                 data.trial_index = explanation_trial_index; // Continue numbering from category trials
-                data.original_trial_index = trial_data.trial_index; // Also store which category trial this explains
+                data.explained_trial_index = trial_data.trial_index; // Which category trial this explains
                 // rt and time_elapsed are automatically added by jsPsych
             }
         };
@@ -474,12 +478,29 @@ async function runExperiment() {
     // Save data trial - this happens BEFORE the thank you message
     const save_data_trial = {
         type: jsPsychHtmlButtonResponse,
-        stimulus: '<p>Preparing to save your data...</p>',
+        stimulus: `
+            <div style="text-align: center; margin-top: 100px; font-size: 24px;">
+                <h2>Saving your data...</h2>
+                <p style="color: red; font-weight: bold;">DO NOT LEAVE THIS WINDOW</p>
+                <p>Please wait while we save your responses.</p>
+            </div>
+        `,
         choices: [],
-        trial_duration: 100,
-        on_finish: async function() {
+        trial_duration: 5000, // Give 5 seconds for the save to complete
+        on_start: function() {
+            // Trigger the save immediately when trial starts
             const filename = `${subjCode}.csv`;
-            await saveDataToOSF(filename);
+            saveDataToOSF(filename).then(success => {
+                if (success) {
+                    console.log('Data saved successfully');
+                    // End the trial early since save completed
+                    jsPsych.finishTrial();
+                } else {
+                    console.log('Data save had an error');
+                    // Still end the trial after showing error in console
+                    setTimeout(() => jsPsych.finishTrial(), 2000);
+                }
+            });
         }
     };
     timeline.push(save_data_trial);
