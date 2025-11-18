@@ -113,24 +113,39 @@ const instructions_2 = {
             <h2>Examples of Good and Bad Categories</h2>
             
             <div class="example-box bad-example">
-                <h3 style="color: #f44336;">❌ Less Good Category Example</h3>
+                <h3 style="color: #f44336;"> Less Good Category Example 1</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things you can use as a doorstop"</p>
                 <p><strong>Why it's less good:</strong> This category is broad and vague. You could use 
                 almost anything as a doorstop, so this doesn't create a meaningful connection between 
                 these specific items. This sort of answer can be a last resort if you cannot think of anything else that connects these things.</p>
             </div>
-            
+
+            <div class="example-box bad-example">
+                <h3 style="color: #f44336;"> Less Good Category Example 2</h3>
+                <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
+                <p><strong>Category:</strong> "When you walk along the road with your shoe on your foot, a rope on your back, a trowel in your pocket, and a lantern in your hand."</p>
+                <p><strong>Why it's less good:</strong> This category just puts the words in a sentence together. This is not specific and does not connect the items in a meaningful way.</p>
+            </div>
+
             <div class="example-box good-example">
-                <h3 style="color: #4CAF50;">✓ Good Category Example</h3>
+                <h3 style="color: #4CAF50;">✓ Good Category Example 1</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things that might get lost during a camping trip"</p>
                 <p><strong>Why it's good:</strong> This category is specific and creates a meaningful 
                 context that connects these particular items in a natural way.</p>
             </div>
+
+            <div class="example-box good-example">
+                <h3 style="color: #4CAF50;">✓ Good Category Example 2</h3>
+                <p><strong>Words:</strong> apple, orange, cheese, yogurt</p>
+                <p><strong>Category:</strong> "Snacks you might find in a child's lunch box"</p>
+                <p><strong>Why it's good:</strong> This category creates a meaningful 
+                context that connects these particular items in a natural way.</p>
+            </div>
             
             <p><strong>Remember:</strong> Think of categories that are specific and meaningful, 
-            not overly broad or generic.</p>
+            not overly broad, generic, or meaningless.</p>
         </div>
     `,
     choices: ['Next']
