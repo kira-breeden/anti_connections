@@ -1,17 +1,20 @@
+// Get subject code from URL parameter
+const urlParams = new URLSearchParams(window.location.search);
+const subjCode = urlParams.get('subjCode') || 'unknown';
+
 // Initialize jsPsych with DataPipe for OSF saving
 const jsPsych = initJsPsych({
     on_finish: function() {
-        // Save data to OSF via DataPipe
-        const subject_id = jsPsych.data.get().values()[0].subject_id || 'unknown';
-        const filename = `${subject_id}.csv`;
-        
+        const filename = `${subjCode}.csv`;
         saveDataToOSF(filename);
     }
 });
 
 // Function to save data to OSF via DataPipe
 function saveDataToOSF(filename) {
-    const data = jsPsych.data.get().csv();
+    // Get only the main trial data (category and explanation trials)
+    const main_data = jsPsych.data.get().filter({save_trial: true});
+    const data = main_data.csv();
     
     fetch('https://pipe.jspsych.org/api/data/', {
         method: 'POST',
@@ -26,7 +29,6 @@ function saveDataToOSF(filename) {
     }).then(response => {
         if (response.ok) {
             console.log('Data saved successfully');
-            // Display completion message
             document.body.innerHTML = `
                 <div style="text-align: center; margin-top: 100px; font-size: 20px;">
                     <h2>Thank you!</h2>
@@ -36,26 +38,23 @@ function saveDataToOSF(filename) {
             `;
         } else {
             console.error('Failed to save data');
-            // Fallback: display data on screen
-            jsPsych.data.displayData();
+            main_data.displayData();
         }
     }).catch(error => {
         console.error('Error saving data:', error);
-        // Fallback: display data on screen
-        jsPsych.data.displayData();
+        main_data.displayData();
     });
 }
 
 // Global variables
 let timeline = [];
 let trials_data = [];
-let selected_trials_for_explanation = [];
-let stored_categories = {}; // NEW: Store categories by trial_index
+let stored_categories = {};
+let stored_trial_data = {}; // Store all trial data for later use
 
-// Generate a unique subject ID
-const subject_id = jsPsych.randomization.randomID(10);
+// Add subject code to all data
 jsPsych.data.addProperties({
-    subject_id: subject_id
+    subjCode: subjCode
 });
 
 // Function to load CSV file
@@ -64,7 +63,6 @@ async function loadTrialsFromCSV(filename) {
         const response = await fetch(filename);
         const csvText = await response.text();
         
-        // Parse CSV
         const lines = csvText.trim().split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
         
@@ -85,12 +83,12 @@ async function loadTrialsFromCSV(filename) {
         return trials;
     } catch (error) {
         console.error('Error loading CSV:', error);
-        alert('Error loading trials file. Please make sure trials.csv is in the same directory.');
+        alert('Error loading trials file. Please make sure the CSV file is in the same directory.');
         return [];
     }
 }
 
-// Instructions page 1
+// Instructions pages
 const instructions_1 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -108,7 +106,6 @@ const instructions_1 = {
     choices: ['Next']
 };
 
-// Instructions page 2 - Examples
 const instructions_2 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -116,7 +113,7 @@ const instructions_2 = {
             <h2>Examples of Good and Bad Categories</h2>
             
             <div class="example-box bad-example">
-                <h3 style="color: #f44336;"> Less Good Category Example</h3>
+                <h3 style="color: #f44336;">❌ Less Good Category Example</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things you can use as a doorstop"</p>
                 <p><strong>Why it's less good:</strong> This category is broad and vague. You could use 
@@ -139,7 +136,6 @@ const instructions_2 = {
     choices: ['Next']
 };
 
-// Instructions page 3 - Task overview
 const instructions_3 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -174,7 +170,10 @@ function createTrialSequence(trial_data, should_store_category = false) {
         </div>
     `;
     
-    // Category input
+    // Store trial start time
+    let trial_start_time;
+    
+    // Category input - this is what gets saved
     const category_input = {
         type: jsPsychSurveyText,
         questions: [
@@ -185,26 +184,41 @@ function createTrialSequence(trial_data, should_store_category = false) {
                 rows: 3
             }
         ],
-        data: {
-            trial_type: 'category_input',
-            words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
-            trial_index: trial_data.trial_index
-        }, 
+        on_start: function() {
+            trial_start_time = performance.now();
+        },
         on_finish: function(data) {
-            // Explicitly ensure the trial_type and trial_index are saved
-            data.trial_type = 'category_input';
-            data.trial_index = trial_data.trial_index;
-            data.words = [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4];
+            const category_response = data.response.category;
             
-            // If this trial was selected for explanation, store the category
+            // Calculate RT for this specific response
+            const rt = data.rt;
+            
+            // Add all required columns to this trial
+            data.save_trial = true;
+            data.trial_type = 'category';
+            data.word1 = trial_data.word1;
+            data.word2 = trial_data.word2;
+            data.word3 = trial_data.word3;
+            data.word4 = trial_data.word4;
+            data.category_response = category_response;
+            data.trial_index = trial_data.trial_index;
+            // time_elapsed is automatically added by jsPsych
+            
+            // Store for explanation phase if needed
             if (should_store_category) {
-                stored_categories[trial_data.trial_index] = data.response.category;
-                console.log('Stored category for trial', trial_data.trial_index, ':', data.response.category);
+                stored_categories[trial_data.trial_index] = category_response;
+                stored_trial_data[trial_data.trial_index] = {
+                    word1: trial_data.word1,
+                    word2: trial_data.word2,
+                    word3: trial_data.word3,
+                    word4: trial_data.word4,
+                    category_response: category_response
+                };
             }
         }
     };
     
-    // Difficulty rating
+    // Difficulty rating - internal only, not saved to final data
     const difficulty_rating = {
         type: jsPsychSurveyLikert,
         questions: [
@@ -221,14 +235,12 @@ function createTrialSequence(trial_data, should_store_category = false) {
                 required: true
             }
         ],
-        data: {
-            trial_type: 'difficulty_rating',
-            words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
-            trial_index: trial_data.trial_index
+        on_finish: function(data) {
+            data.save_trial = false; // Don't save this separately
         }
     };
     
-    // Consensus rating
+    // Consensus rating - internal only, not saved to final data
     const consensus_rating = {
         type: jsPsychSurveyLikert,
         questions: [
@@ -245,21 +257,18 @@ function createTrialSequence(trial_data, should_store_category = false) {
                 required: true
             }
         ],
-        data: {
-            trial_type: 'consensus_rating',
-            words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
-            trial_index: trial_data.trial_index
+        on_finish: function(data) {
+            data.save_trial = false; // Don't save this separately
         }
     };
     
     return [category_input, difficulty_rating, consensus_rating];
 }
 
-// Function to create explanation trials for randomly selected trials
+// Function to create explanation trials
 function createExplanationTrials(selected_indices) {
     const explanation_trials = [];
     
-    // Introduction to explanation section
     const explanation_intro = {
         type: jsPsychHtmlButtonResponse,
         stimulus: `
@@ -275,19 +284,15 @@ function createExplanationTrials(selected_indices) {
     
     explanation_trials.push(explanation_intro);
     
-    // Get the actual data for selected trials
     selected_indices.forEach((trial_idx, count) => {
         const trial_data = trials_data[trial_idx];
         
-        // Get the participant's category response for this trial
-        const category_response_getter = {
+        const explanation_trial = {
             type: jsPsychSurveyText,
             questions: [
                 {
                     prompt: function() {
-                        // Retrieve the stored category at runtime (when the trial actually displays)
                         const stored_category = stored_categories[trial_data.trial_index] || 'NO CATEGORY FOUND';
-                        console.log('Displaying explanation for trial', trial_data.trial_index, 'with category:', stored_category);
                         
                         return `
                             <div class="word-display">
@@ -305,19 +310,23 @@ function createExplanationTrials(selected_indices) {
                     rows: 5
                 }
             ],
-            data: {
-                trial_type: 'explanation',
-                words: [trial_data.word1, trial_data.word2, trial_data.word3, trial_data.word4],
-                trial_index: trial_data.trial_index,
-                explanation_number: count + 1
-            },
             on_finish: function(data) {
-                // Store the original category in the data for this explanation trial
-                data.original_category = stored_categories[trial_data.trial_index];
+                const stored = stored_trial_data[trial_data.trial_index];
+                
+                // Add all required columns
+                data.save_trial = true;
+                data.trial_type = 'explanation';
+                data.word1 = stored.word1;
+                data.word2 = stored.word2;
+                data.word3 = stored.word3;
+                data.word4 = stored.word4;
+                data.category_response = data.response.explanation; // The explanation text
+                data.trial_index = trial_data.trial_index;
+                // rt and time_elapsed are automatically added by jsPsych
             }
         };
         
-        explanation_trials.push(category_response_getter);
+        explanation_trials.push(explanation_trial);
     });
     
     return explanation_trials;
@@ -329,12 +338,12 @@ async function runExperiment() {
     trials_data = await loadTrialsFromCSV('demo_sample.csv');
     
     if (trials_data.length === 0) {
-        alert('No trials loaded. Please check your trials.csv file.');
+        alert('No trials loaded. Please check your CSV file.');
         return;
     }
     
-    // PRE-SELECT which trials will need explanations BEFORE building the timeline
-    const num_explanations = Math.min(5, trials_data.length); // TO DO: Ask Aja how many we think we should ask about
+    // Pre-select trials for explanation
+    const num_explanations = Math.min(5, trials_data.length);
     const selected_indices = [];
     
     while (selected_indices.length < num_explanations) {
@@ -345,20 +354,21 @@ async function runExperiment() {
     }
     
     console.log('Pre-selected trials for explanation:', selected_indices);
+    console.log('Subject code:', subjCode);
     
-    // Add instructions to timeline
+    // Build timeline
     timeline.push(instructions_1);
     timeline.push(instructions_2);
     timeline.push(instructions_3);
     
-    // Add all trial sequences, marking which ones need category storage
+    // Add all trial sequences
     trials_data.forEach((trial, idx) => {
         const should_store = selected_indices.includes(idx);
         const trial_sequence = createTrialSequence(trial, should_store);
         timeline.push(...trial_sequence);
     });
     
-    // Add explanation trials - NOW they can use the stored categories
+    // Add explanation trials
     const explanation_trials = createExplanationTrials(selected_indices);
     timeline.push(...explanation_trials);
     
