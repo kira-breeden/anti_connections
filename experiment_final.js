@@ -185,10 +185,16 @@ function createTrialSequence(trial_data, should_store_category = false) {
         </div>
     `;
     
-    // Store trial start time
-    let trial_start_time;
+    // Object to collect all responses for this trial
+    const trial_responses = {
+        word1: trial_data.word1,
+        word2: trial_data.word2,
+        word3: trial_data.word3,
+        word4: trial_data.word4,
+        trial_index: trial_data.trial_index
+    };
     
-    // Category input - this is what gets saved
+    // Category input
     const category_input = {
         type: jsPsychSurveyText,
         questions: [
@@ -199,41 +205,18 @@ function createTrialSequence(trial_data, should_store_category = false) {
                 rows: 3
             }
         ],
-        on_start: function() {
-            trial_start_time = performance.now();
-        },
         on_finish: function(data) {
-            const category_response = data.response.category;
-            
-            // Calculate RT for this specific response
-            const rt = data.rt;
-            
-            // Add all required columns to this trial
-            data.save_trial = true;
-            data.trial_type = 'category';
-            data.word1 = trial_data.word1;
-            data.word2 = trial_data.word2;
-            data.word3 = trial_data.word3;
-            data.word4 = trial_data.word4;
-            data.category_response = category_response;
-            data.trial_index = trial_data.trial_index;
-            // time_elapsed is automatically added by jsPsych
+            trial_responses.category_response = data.response.category;
+            trial_responses.category_rt = data.rt;
             
             // Store for explanation phase if needed
             if (should_store_category) {
-                stored_categories[trial_data.trial_index] = category_response;
-                stored_trial_data[trial_data.trial_index] = {
-                    word1: trial_data.word1,
-                    word2: trial_data.word2,
-                    word3: trial_data.word3,
-                    word4: trial_data.word4,
-                    category_response: category_response
-                };
+                stored_categories[trial_data.trial_index] = data.response.category;
             }
         }
     };
     
-    // Difficulty rating - internal only, not saved to final data
+    // Difficulty rating
     const difficulty_rating = {
         type: jsPsychSurveyLikert,
         questions: [
@@ -251,11 +234,11 @@ function createTrialSequence(trial_data, should_store_category = false) {
             }
         ],
         on_finish: function(data) {
-            data.save_trial = false; // Don't save this separately
+            trial_responses.difficulty = data.response.difficulty;
         }
     };
     
-    // Consensus rating - internal only, not saved to final data
+    // Consensus rating - this is the last one, so we save the consolidated data here
     const consensus_rating = {
         type: jsPsychSurveyLikert,
         questions: [
@@ -273,7 +256,33 @@ function createTrialSequence(trial_data, should_store_category = false) {
             }
         ],
         on_finish: function(data) {
-            data.save_trial = false; // Don't save this separately
+            trial_responses.consensus = data.response.consensus;
+            
+            // Now we have all three responses - save consolidated data
+            jsPsych.data.addDataToLastTrial({
+                save_trial: true,
+                trial_type: 'category',
+                word1: trial_responses.word1,
+                word2: trial_responses.word2,
+                word3: trial_responses.word3,
+                word4: trial_responses.word4,
+                category_response: trial_responses.category_response,
+                difficulty: trial_responses.difficulty,
+                consensus: trial_responses.consensus,
+                trial_index: trial_responses.trial_index,
+                rt: trial_responses.category_rt
+            });
+            
+            // Store for explanation phase if needed
+            if (should_store_category) {
+                stored_trial_data[trial_data.trial_index] = {
+                    word1: trial_responses.word1,
+                    word2: trial_responses.word2,
+                    word3: trial_responses.word3,
+                    word4: trial_responses.word4,
+                    category_response: trial_responses.category_response
+                };
+            }
         }
     };
     
