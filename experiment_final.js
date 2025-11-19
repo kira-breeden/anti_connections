@@ -1,15 +1,6 @@
-// Get subject code and condition from URL parameters (provided by DataPipe)
+// Get subject code from URL parameter (provided by DataPipe)
 const urlParams = new URLSearchParams(window.location.search);
 const subjCode = urlParams.get('subjCode') || 'unknown';
-
-const condition = jsPsychPipe.getCondition("hsHLNdmy3RRN");
-//   if(condition == 0) { timeline = condition_1_timeline; }
-//   if(condition == 1) { timeline = condition_2_timeline; }
-
-// const condition = urlParams.get('condition') || 'unknown';
-
-// Determine which trial list to load based on condition
-const trialListFile = condition === '1' ? 'trial_list_1.csv' : 'trial_list_2.csv';
 
 // Generate random seed for reproducibility
 const randomSeed = Math.floor(Math.random() * 1000000);
@@ -111,12 +102,9 @@ let stored_categories = {};
 let stored_trial_data = {}; // Store all trial data for later use
 let rng = new SeededRandom(randomSeed);
 
-// Add subject code, condition, and seed to all data
-jsPsych.data.addProperties({
-    subjCode: subjCode,
-    condition: condition,
-    randomSeed: randomSeed
-});
+// Data properties will be added in runExperiment after condition is retrieved
+
+// Seeded random number generator for reproducibility
 
 // Function to load CSV file
 async function loadTrialsFromCSV(filename) {
@@ -440,6 +428,27 @@ function createExplanationTrials(selected_indices, starting_trial_index) {
 
 // Main function to run the experiment
 async function runExperiment() {
+    // Get condition assignment from DataPipe
+    const condition = await jsPsychPipe.getCondition("hsHLNdmy3RRN");
+    
+    // Determine which trial list to load based on condition
+    let trialListFile;
+    if (condition == 0) {
+        trialListFile = 'trial_list_1.csv';
+    } else if (condition == 1) {
+        trialListFile = 'trial_list_2.csv';
+    } else {
+        // Fallback in case of unexpected condition value
+        trialListFile = 'trial_list_1.csv';
+    }
+    
+    // Add data properties including condition
+    jsPsych.data.addProperties({
+        subjCode: subjCode,
+        condition: condition,
+        randomSeed: randomSeed
+    });
+    
     // Load trials from CSV based on condition
     trials_data = await loadTrialsFromCSV(trialListFile);
     
@@ -527,7 +536,7 @@ async function runExperiment() {
         trial_duration: 2000,
         on_finish: function() {
             // Redirect to Qualtrics survey
-            window.location.href = `https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU?subjCode=${subjCode}`;
+            window.location.href = `https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU?subjCode=${subjCode}`;;
         }
     };
     timeline.push(redirect_message);
@@ -536,5 +545,9 @@ async function runExperiment() {
     jsPsych.run(timeline);
 }
 
-// Start the experiment when page loads
-runExperiment();
+// Start the experiment when page loads using jsPsychPipe pattern
+async function createExperiment() {
+    await runExperiment();
+}
+
+createExperiment();
