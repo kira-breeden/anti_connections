@@ -198,7 +198,7 @@ const instructions_2 = {
             </div>
 
             <div class="example-box good-example">
-                <h3 style="color: #4CAF50;">âœ“ Good Category Example 1</h3>
+                <h3 style="color: #4CAF50;"> Good Category Example 1</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things that might get lost during a camping trip"</p>
                 <p><strong>Why it's good:</strong> This category is specific and creates a meaningful 
@@ -206,7 +206,7 @@ const instructions_2 = {
             </div>
 
             <div class="example-box good-example">
-                <h3 style="color: #4CAF50;">âœ“ Good Category Example 2</h3>
+                <h3 style="color: #4CAF50;"> Good Category Example 2</h3>
                 <p><strong>Words:</strong> apple, orange, cheese, yogurt</p>
                 <p><strong>Category:</strong> "Snacks you might find in a child's lunch box"</p>
                 <p><strong>Why it's good:</strong> This category creates a meaningful 
@@ -214,7 +214,7 @@ const instructions_2 = {
             </div>
             
             <p><strong>Remember:</strong> Think of categories that are specific and meaningful, 
-            not overly broad, generic, or meaningless.</p>
+            not overly broad, generic, or just embedded in a sentence.</p>
         </div>
     `,
     choices: ['Next']
@@ -529,7 +529,4 @@ async function runExperiment() {
 
 // Start the experiment when page loads
 runExperiment();
-
-
-// https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU
 
