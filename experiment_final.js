@@ -1,9 +1,9 @@
 // Generate random subject code
-const subjCode = 'S' + Math.random().toString(36).substring(2, 10).toUpperCase();
+// const subjCode = 'S' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-// ALTERNATIVE: Get subject code from URL parameter (comment out line above and uncomment below)
-// const urlParams = new URLSearchParams(window.location.search);
-// const subjCode = urlParams.get('subjCode') || 'unknown';
+// Get subject code from URL parameter (comment out line above and uncomment below)
+const urlParams = new URLSearchParams(window.location.search);
+const subjCode = urlParams.get('subjCode') || 'unknown';
 
 // Generate random seed for reproducibility
 const randomSeed = Math.floor(Math.random() * 1000000);
@@ -198,7 +198,7 @@ const instructions_2 = {
             </div>
 
             <div class="example-box good-example">
-                <h3 style="color: #4CAF50;">✓ Good Category Example 1</h3>
+                <h3 style="color: #4CAF50;">âœ“ Good Category Example 1</h3>
                 <p><strong>Words:</strong> shoe, trowel, rope, lantern</p>
                 <p><strong>Category:</strong> "Things that might get lost during a camping trip"</p>
                 <p><strong>Why it's good:</strong> This category is specific and creates a meaningful 
@@ -206,7 +206,7 @@ const instructions_2 = {
             </div>
 
             <div class="example-box good-example">
-                <h3 style="color: #4CAF50;">✓ Good Category Example 2</h3>
+                <h3 style="color: #4CAF50;">âœ“ Good Category Example 2</h3>
                 <p><strong>Words:</strong> apple, orange, cheese, yogurt</p>
                 <p><strong>Category:</strong> "Snacks you might find in a child's lunch box"</p>
                 <p><strong>Why it's good:</strong> This category creates a meaningful 
@@ -505,19 +505,23 @@ async function runExperiment() {
     };
     timeline.push(save_data_trial);
     
-    // Thank you message - only shown AFTER data is saved
-    const thank_you = {
+    // Redirect message - shown for 2 seconds before redirecting to Qualtrics
+    const redirect_message = {
         type: jsPsychHtmlButtonResponse,
         stimulus: `
-            <div class="instruction-text">
-                <h2>Thank You!</h2>
-                <p>You have completed the experiment.</p>
-                <p>Your responses have been recorded.</p>
+            <div style="text-align: center; margin-top: 100px; font-size: 20px;">
+                <h2>You will now be directed to the last stage of the study.</h2>
+                <p>Please do not leave the study until you have completed all stages.</p>
             </div>
         `,
-        choices: ['Finish']
+        choices: [],
+        trial_duration: 2000,
+        on_finish: function() {
+            // Redirect to Qualtrics survey
+            window.location.href = 'https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU';
+        }
     };
-    timeline.push(thank_you);
+    timeline.push(redirect_message);
     
     // Run the experiment
     jsPsych.run(timeline);
@@ -525,3 +529,7 @@ async function runExperiment() {
 
 // Start the experiment when page loads
 runExperiment();
+
+
+// https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU
+
