@@ -1,9 +1,15 @@
-// Generate random subject code
-// const subjCode = 'S' + Math.random().toString(36).substring(2, 10).toUpperCase();
-
-// Get subject code from URL parameter (comment out line above and uncomment below)
+// Get subject code and condition from URL parameters (provided by DataPipe)
 const urlParams = new URLSearchParams(window.location.search);
 const subjCode = urlParams.get('subjCode') || 'unknown';
+
+const condition = await jsPsychPipe.getCondition("hsHLNdmy3RRN");
+//   if(condition == 0) { timeline = condition_1_timeline; }
+//   if(condition == 1) { timeline = condition_2_timeline; }
+
+// const condition = urlParams.get('condition') || 'unknown';
+
+// Determine which trial list to load based on condition
+const trialListFile = condition === '1' ? 'trial_list_1.csv' : 'trial_list_2.csv';
 
 // Generate random seed for reproducibility
 const randomSeed = Math.floor(Math.random() * 1000000);
@@ -29,7 +35,7 @@ function saveDataToOSF(filename) {
     
     // Manually build CSV with only the columns we want
     const rows = main_data.values();
-    const headers = ['subjCode', 'randomSeed', 'rt', 'trial_type', 'word1', 'word2', 'word3', 'word4', 
+    const headers = ['subjCode', 'condition', 'randomSeed', 'rt', 'trial_type', 'word1', 'word2', 'word3', 'word4', 
                      'group_id', 'category_response', 'difficulty', 'consensus', 'trial_index', 
                      'explained_trial_index', 'time_elapsed'];
     
@@ -105,9 +111,10 @@ let stored_categories = {};
 let stored_trial_data = {}; // Store all trial data for later use
 let rng = new SeededRandom(randomSeed);
 
-// Add subject code and seed to all data
+// Add subject code, condition, and seed to all data
 jsPsych.data.addProperties({
     subjCode: subjCode,
+    condition: condition,
     randomSeed: randomSeed
 });
 
@@ -433,8 +440,8 @@ function createExplanationTrials(selected_indices, starting_trial_index) {
 
 // Main function to run the experiment
 async function runExperiment() {
-    // Load trials from CSV
-    trials_data = await loadTrialsFromCSV('demo_sample.csv');
+    // Load trials from CSV based on condition
+    trials_data = await loadTrialsFromCSV(trialListFile);
     
     if (trials_data.length === 0) {
         alert('No trials loaded. Please check your CSV file.');
@@ -452,9 +459,11 @@ async function runExperiment() {
         }
     }
     
-    console.log('Pre-selected trials for explanation:', selected_indices);
     console.log('Subject code:', subjCode);
+    console.log('Condition:', condition);
+    console.log('Trial list file:', trialListFile);
     console.log('Random seed:', randomSeed);
+    console.log('Pre-selected trials for explanation:', selected_indices);
     
     // Build timeline
     timeline.push(instructions_1);
@@ -518,7 +527,7 @@ async function runExperiment() {
         trial_duration: 2000,
         on_finish: function() {
             // Redirect to Qualtrics survey
-            window.location.href = `https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU?subjCode=${subjCode}`;;
+            window.location.href = `https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU?subjCode=${subjCode}`;
         }
     };
     timeline.push(redirect_message);
@@ -529,4 +538,3 @@ async function runExperiment() {
 
 // Start the experiment when page loads
 runExperiment();
-
