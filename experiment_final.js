@@ -12,8 +12,7 @@ const jsPsych = initJsPsych({
         document.body.innerHTML = `
             <div style="text-align: center; margin-top: 100px; font-size: 20px;">
                 <h2>Thank you!</h2>
-                <p>You have completed the experiment.</p>
-                <p>You may now close this window.</p>
+                <p>You are being redirected to the final stage.</p>
             </div>
         `;
     }
@@ -303,25 +302,19 @@ function createTrialSequence(trial_data, should_store_category = false) {
         }
     };
     
-    // Consensus rating - this is the last one, so we save the consolidated data here
+    // Consensus rating - now using slider instead of Likert scale
     const consensus_rating = {
-        type: jsPsychSurveyLikert,
-        questions: [
-            {
-                prompt: "How likely do you think someone else would be to generate the same category?",
-                name: 'consensus',
-                labels: [
-                    "Very Unlikely",
-                    "Somewhat Unlikely",
-                    "Neutral",
-                    "Somewhat Likely",
-                    "Very Likely"
-                ],
-                required: true
-            }
-        ],
+        type: jsPsychHtmlSliderResponse,
+        stimulus: "How likely do you think someone else would be to generate the same category?",
+        labels: ['0<br>Very Unlikely', '25', '50', '75', '100<br>Very Likely'],
+        min: 0,
+        max: 100,
+        start: 50,
+        step: 1,
+        slider_width: 500,
+        require_movement: true,
         on_finish: function(data) {
-            trial_responses.consensus = data.response.consensus;
+            trial_responses.consensus = data.response;
             
             // Now we have all three responses - save consolidated data
             jsPsych.data.addDataToLastTrial({
