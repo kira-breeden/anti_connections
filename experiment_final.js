@@ -518,7 +518,7 @@ async function runExperiment() {
         trial_duration: 2000,
         on_finish: function() {
             // Redirect to Qualtrics survey
-            window.location.href = 'https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU?subjCode=${subjCode}';
+            window.location.href = `https://uwmadison.co1.qualtrics.com/jfe/form/SV_0AO3OVKKPqmQaBU?subjCode=${subjCode}`;;
         }
     };
     timeline.push(redirect_message);
