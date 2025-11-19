@@ -305,14 +305,23 @@ function createTrialSequence(trial_data, should_store_category = false) {
     // Consensus rating - now using slider instead of Likert scale
     const consensus_rating = {
         type: jsPsychHtmlSliderResponse,
-        stimulus: "How likely do you think someone else would be to generate the same category?",
-        labels: ['0<br>Very Unlikely', '25', '50', '75', '100<br>Very Likely'],
+        stimulus: "What percent of people do you think would generate the same category you did?",
+        labels: ['0%<br>No one', '25%', '50%', '75%', '100%<br>Everyone'],
         min: 0,
         max: 100,
         start: 50,
         step: 1,
         slider_width: 500,
         require_movement: true,
+        prompt: '<p id="slider-value" style="font-size: 18px; font-weight: bold; margin-top: 20px;">Current value: 50%</p>',
+        on_load: function() {
+            const slider = document.querySelector('input[type="range"]');
+            const valueDisplay = document.getElementById('slider-value');
+            
+            slider.addEventListener('input', function() {
+                valueDisplay.textContent = 'Current value: ' + this.value + '%';
+            });
+        },
         on_finish: function(data) {
             trial_responses.consensus = data.response;
             
