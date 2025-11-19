@@ -2,7 +2,7 @@
 const urlParams = new URLSearchParams(window.location.search);
 const subjCode = urlParams.get('subjCode') || 'unknown';
 
-const condition = await jsPsychPipe.getCondition("hsHLNdmy3RRN");
+const condition = jsPsychPipe.getCondition("hsHLNdmy3RRN");
 //   if(condition == 0) { timeline = condition_1_timeline; }
 //   if(condition == 1) { timeline = condition_2_timeline; }
 
