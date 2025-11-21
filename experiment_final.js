@@ -464,7 +464,7 @@ async function runExperiment() {
     }
     
     // Pre-select trials for explanation
-    const num_explanations = Math.min(15, trials_data.length);
+    const num_explanations = Math.round(trials_data.length/3);
     const selected_indices = [];
     
     while (selected_indices.length < num_explanations) {
