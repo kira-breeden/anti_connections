@@ -439,6 +439,10 @@ async function runExperiment() {
         trialListFile = 'trial_list_1.csv';
     } else if (condition == 1) {
         trialListFile = 'trial_list_2.csv';
+    } else if (condition == 2) {
+        trialListFile = 'trial_list_3.csv';
+    } else if (condition == 3) {
+        trialListFile = 'trial_list_4.csv';
     } else {
         // Fallback in case of unexpected condition value
         trialListFile = 'trial_list_1.csv';
